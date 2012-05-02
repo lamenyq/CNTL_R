@@ -198,6 +198,9 @@ class Cntrlr(ControlSurface):
 			self._mixer.channel_strip(index).name = 'Mixer_ChannelStrip_' + str(index)
 			self._mixer.track_eq(index).name = 'Mixer_EQ_' + str(index)
 			self._mixer.channel_strip(index)._invert_mute_feedback = True
+		for index in range(2):
+			self._mixer.return_strip(index)._invert_mute_feedback = True
+
 		self.song().view.selected_track = self._mixer.channel_strip(0)._track #set the selected strip to the first track, so that we don't, for example, try to assign a button to arm the master track, which would cause an assertion error
 		self._send_reset = ResetSendsComponent(self)
 		self._send_reset.name = 'Sends_Reset'
@@ -257,7 +260,7 @@ class Cntrlr(ControlSurface):
 		self._device_navigator = DetailViewControllerComponent(self)
 		self._device_navigator.name = 'Device_Navigator'
 		self._device_selection_follows_track_selection = FOLLOW
-	
+		self._device_navigator.set_device_clip_toggle_button(self._button[12])	
 
 	def _setup_device_selector(self):
 		self._device_selector = DeviceSelectorComponent(self)
@@ -300,6 +303,9 @@ class Cntrlr(ControlSurface):
 			self._mixer.channel_strip(index).set_arm_button(None)
 			self._mixer.channel_strip(index).set_mute_button(None)
 			self._mixer.channel_strip(index).set_select_button(None)
+		for index in range(2):
+			self._mixer.return_strip(index).set_mute_button(None)
+			self._mixer.return_strip(index).set_select_button(None)
 		#for index in range(2):
 		#	self._mixer.return_strip(index).set_volume_control(self._fader[index+4])
 		#self._mixer.master_strip().set_volume_control(self._fader[7])
@@ -360,49 +366,71 @@ class Cntrlr(ControlSurface):
 			if not self._encoder[index].value_has_listener(self._client[index]._mod_dial_value):
 				self._encoder[index].add_value_listener(self._client[index]._mod_dial_value)
 			self._client[index].receive_mod_vol(self._client[index]._mod_vol)
+
 		for index in range(4):
 			self._button[index].set_on_value(SOLO[self._rgb])
 			self._mixer.channel_strip(index).set_solo_button(self._button[index])
-			self._button[index+4].set_on_value(ARM[self._rgb])
-			self._mixer.channel_strip(index).set_arm_button(self._button[index+4])
+
+			self._button[index+4].set_on_value(SELECT[self._rgb])
+			self._mixer.channel_strip(index).set_select_button(self._button[index+4])
+
 			self._button[index+16].set_on_value(MUTE[self._rgb])
 			self._mixer.channel_strip(index).set_mute_button(self._button[index+16])
-			self._button[index+20].set_on_value(SELECT[self._rgb])
-			self._mixer.channel_strip(index).set_select_button(self._button[index+20])
+
+			self._button[index + 20].set_on_off_values(STOP_CLIP[self._rgb], STOP_CLIP[self._rgb])
+			self._button[index+20].send_value(STOP_CLIP[self._rgb], True)
+
+		self._session.set_stop_track_clip_buttons(tuple(self._button[index+20] for index in range(4)))
+
 		for index in range(2):
+			self._button[index + 8].set_on_value(SELECT[self._rgb])
+			self._mixer.return_strip(index).set_select_button(self._button[index + 8])
+
+			self._button[index+24].set_on_value(MUTE[self._rgb])
+			self._mixer.return_strip(index).set_mute_button(self._button[index+24])
+
 			self._mixer.return_strip(index).set_volume_control(self._fader[index+4])
+
+		self._button[10].send_value(SEND_RESET[self._rgb], True)
+		self._button[11].send_value(SEND_RESET[self._rgb], True)
+		self._button[26].send_value(SEND_RESET[self._rgb], True)
+		self._button[27].send_value(SEND_RESET[self._rgb], True)
+		self._send_reset.set_buttons(tuple([self._button[10], self._button[11], self._button[26], self._button[27]]))
+
 		self._mixer.master_strip().set_volume_control(self._fader[7])
 		self._mixer.set_prehear_volume_control(self._fader[6])
 		for track in range(4):
 			channel_strip_send_controls = []
 			for control in range(2):
-				channel_strip_send_controls.append(self._dial_left[track + (control * 4)])
+				channel_strip_send_controls.append(self._dial_right[track + (control * 4)])
 			self._mixer.channel_strip(track).set_send_controls(tuple(channel_strip_send_controls))
-			self._mixer.channel_strip(track).set_pan_control(self._dial_left[track + 8])
 			gain_controls = []
-			self._mixer.track_eq(track).set_gain_controls(tuple([self._dial_right[track+8], self._dial_right[track+4], self._dial_right[track]]))
+			self._mixer.track_eq(track).set_gain_controls(tuple([self._dial_left[track+8], self._dial_left[track+4], self._dial_left[track]]))
 			self._mixer.track_eq(track).set_enabled(True)	
+			#self._mixer.channel_strip(track).set_pan_control(self._dial_right[track + 8])
 		for column in range(4):
 			for row in range(4):
 				self._scene[row].clip_slot(column).set_launch_button(self._grid[(row*4)+column])
-		self._send_reset.set_buttons(tuple(self._button[index + 8] for index in range(4)))
-		self._session.set_stop_track_clip_buttons(tuple(self._button[index+24] for index in range(4)))
-		for index in range(4):
-			self._button[index+8].send_value(SEND_RESET[self._rgb], True)
-			self._button[index + 24].set_on_off_values(STOP_CLIP[self._rgb], STOP_CLIP[self._rgb])
-			self._button[index+24].send_value(STOP_CLIP[self._rgb], True)
-		self._button[28].set_on_off_values(PLAY_ON[self._rgb], PLAY[self._rgb])
-		self._transport.set_play_button(self._button[28])	
-		self._button[30].set_on_off_values(RECORD_ON[self._rgb], RECORD[self._rgb])
-		self._transport.set_record_button(self._button[30])
-		self._button[29].set_on_value(STOP[self._rgb])
-		self._transport.set_stop_button(self._button[29])
-		self._button[29].send_value(STOP_OFF[self._rgb], True)
+
+		self._button[15].set_on_off_values(PLAY_ON[self._rgb], PLAY[self._rgb])
+		self._transport.set_play_button(self._button[15])	
+		self._button[14].set_off_value(STOP[self._rgb])
+		self._button[14].set_on_value(STOP[self._rgb])
+		self._transport.set_stop_button(self._button[14])
+		self._button[14].send_value(STOP_OFF[self._rgb], True)
 		#self._device.set_parameter_controls(tuple([self._encoder[index+4] for index in range(8)]))
-		for index in range(4):
-			self._button[index + 12].set_on_off_values(SESSION_NAV[self._rgb], SESSION_NAV_OFF[self._rgb])
-		self._session.set_track_bank_buttons(self._button[15], self._button[14])
-		self._session.set_scene_bank_buttons(self._button[13], self._button[12])
+		#self._button[30].set_on_off_values(RECORD_ON[self._rgb], RECORD[self._rgb])
+		#self._transport.set_record_button(self._button[30])
+
+		
+		self._button[13].set_on_off_values(SESSION_NAV[self._rgb], SESSION_NAV_OFF[self._rgb])
+		self._button[28].set_on_off_values(SESSION_NAV[self._rgb], SESSION_NAV_OFF[self._rgb])
+		self._button[29].set_on_off_values(SESSION_NAV[self._rgb], SESSION_NAV_OFF[self._rgb])
+		self._button[30].set_on_off_values(SESSION_NAV[self._rgb], SESSION_NAV_OFF[self._rgb])
+
+		self._session.set_scene_bank_buttons(self._button[29], self._button[13])
+		self._session.set_track_bank_buttons(self._button[30], self._button[28])
+
 		self._encoder_button[7].set_on_value(DEVICE_LOCK[self._rgb])
 		self._device.set_lock_button(self._encoder_button[7])
 		self._encoder_button[4].set_on_value(DEVICE_ON[self._rgb])

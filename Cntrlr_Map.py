@@ -98,7 +98,7 @@ ARM = [5, 5, 8]
 SEND_RESET = [7, 7, 7]
 STOP_CLIPS = [127, 1, 1]
 STOP_CLIPS_OFF = [127, 127, 127]
-SELECT = [127, 127, 127]
+SELECT = [7, 127, 127]
 SCENE_LAUNCH = [7, 3, 17]
 USER1_COLOR = [4, 4, 29]
 USER2_COLOR = [5, 5, 29]
@@ -130,6 +130,10 @@ CLIP_TRG_PLAY = [12, 2, 15]
 ZOOM_STOPPED = [1, 127, 127]
 ZOOM_PLAYING = [6, 6, 15]
 ZOOM_SELECTED = [8, 1, 8]
-STOP_CLIP = [127, 127, 2]
+STOP_CLIP = [5, 127, 2]
+
+
+STOP = [5, 5, 8]
+STOP_OFF = [5, 5, 8]
 
 ## a  http://www.aumhaa.com
